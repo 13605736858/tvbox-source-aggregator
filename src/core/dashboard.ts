@@ -324,7 +324,7 @@ ${sharedStyles}
 <!-- Login -->
 <div class="login-overlay" id="loginOverlay">
   <div class="login-box">
-    <h2 data-i18n="loginTitle">Config Editor</h2>
+    <h2 data-i18n="loginTitle">status</h2>
     <p data-i18n="loginSubtitle">Enter admin token</p>
     <div class="error-msg" id="loginError" data-i18n="invalidToken">Invalid token</div>
     <input type="password" id="tokenInput" data-i18n-placeholder="tokenPh" placeholder="Admin Token" autofocus>
@@ -336,7 +336,7 @@ ${sharedStyles}
 <div class="container" id="mainContent" style="display:none">
   <header class="header">
     <div class="header-top">
-      <div class="header-label" data-i18n="headerLabel">Admin Console</div>
+      <div class="header-label" data-i18n="headerLabel">status</div>
       <div style="display:flex;gap:8px;align-items:center">
         <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">??</button>
         <button class="lang-toggle" id="langToggle" onclick="doToggleLang()">中文</button>
