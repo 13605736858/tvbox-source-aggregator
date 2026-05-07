@@ -132,7 +132,7 @@ ${sharedStyles}
 .update-time.never{color:var(--red)}
 
 /* Refresh button - removed */
-}
+
 
 /* Source Health Section */
 .health-section{
@@ -316,18 +316,86 @@ ${sharedStyles}
 }
 
 .footer{margin-top:48px;padding-top:24px}
+
+/* 登录样式 和 config-editor 完全一样 */
+.login-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+.login-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 32px;
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+.login-box h2 {
+  margin: 0 0 12px;
+  color: var(--text-bright);
+}
+.login-box p {
+  margin: 0 0 20px;
+  color: var(--text-dim);
+}
+.login-box input {
+  width: 100%;
+  padding: 14px;
+  margin-bottom: 16px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-bright);
+  box-sizing: border-box;
+}
+.login-box .btn {
+  width: 100%;
+  padding: 14px;
+  background: var(--green);
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+.error-msg {
+  color: var(--red);
+  margin: 0 0 12px;
+  font-size: 0.8rem;
+  display: none;
+}
 </style>
 <script>(function(){var t=localStorage.getItem('theme')||'dark';document.documentElement.setAttribute('data-theme',t)})()</script>
 </head>
 <body style="opacity:0">
 
+<!-- 登录弹窗 100% 对齐 config-editor -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <h2 data-i18n="loginTitle">Dashboard</h2>
+    <p data-i18n="loginSubtitle">Enter admin token</p>
+    <div class="error-msg" id="loginError" data-i18n="invalidToken">Invalid token</div>
+    <input type="password" id="tokenInput" placeholder="Admin Token" autofocus>
+    <button class="btn" onclick="auth.doLogin()">Login</button>
+  </div>
+</div>
 
-<div class="container">
+<!-- 主内容默认隐藏 -->
+<div class="container" id="mainContent" style="display:none">
   <header class="header">
     <div class="header-top">
       <div class="header-label" data-i18n="headerLabel">System Monitor</div>
       <div style="display:flex;gap:8px;align-items:center">
-        <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">??</button>
+        <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">☀️</button>
         <button class="lang-toggle" id="langToggle" onclick="doToggleLang()">中文</button>
       </div>
     </div>
@@ -466,8 +534,11 @@ ${sharedStyles}
 <script>
 ${sharedUi}
 
+// 翻译加入登录字段（和 config-editor 一致）
 const translations = {
   en: {
+    loginTitle:'Dashboard', loginSubtitle:'Enter admin token',
+    invalidToken:'Invalid token',
     headerLabel:'System Monitor', connecting:'Connecting...', sites:'Sites', lives:'Lives',
     parses:'Parses', sources:'Sources', lastAggregation:'Last Aggregation',
     configUrlLabel:'TVBox Config URL', liveConfigUrlLabel:'Live-Only Config URL',
@@ -484,6 +555,8 @@ const translations = {
     navAdmin:'Admin', navConfigEditor:'Config Editor',
   },
   zh: {
+    loginTitle:'管理面板', loginSubtitle:'请输入管理员密码',
+    invalidToken:'密码错误',
     headerLabel:'系统监控', connecting:'连接中...', sites:'站点', lives:'直播',
     parses:'解析', sources:'源', lastAggregation:'上次聚合',
     configUrlLabel:'TVBox 配置地址', liveConfigUrlLabel:'直播配置地址',
@@ -509,6 +582,16 @@ function doToggleLang() {
   applyLang(translations, next);
   loadStatus();
 }
+
+// ====================== 登录逻辑（完全照搬 config-editor）======================
+const auth = initAuth('tokenInput', 'loginError', 'loginOverlay', 'mainContent', '/admin/config-data', function() {
+  document.body.style.opacity = "1";
+  loadStatus();
+  loadSourceHealth();
+  loadSearchQuotaSummary();
+});
+
+// ===============================================================================
 
 const configUrl = location.origin + '/';
 $('configUrl').textContent = configUrl;
@@ -550,12 +633,11 @@ async function loadStatus() {
       txt.textContent = t('noData');
     }
 
-    // Render warnings
     const banner = $('warningBanner');
     const warnings = d.warnings || [];
     if (warnings.length > 0) {
       const WARN_KEYS = { docker_no_base_url: 'warnDockerNoBaseUrl' };
-      banner.innerHTML = warnings.map(w => '<div class="warning-banner">? ' + (t(WARN_KEYS[w] || w)) + '</div>').join('');
+      banner.innerHTML = warnings.map(w => '<div class="warning-banner">⚠ ' + (t(WARN_KEYS[w] || w)) + '</div>').join('');
     } else {
       banner.innerHTML = '';
     }
@@ -650,7 +732,6 @@ async function loadSourceHealth() {
     records.sort((a, b) => b.consecutiveFailures - a.consecutiveFailures);
     renderHealthTable(records);
 
-    // 智能折叠：有 error 级别时自动展开
     const toggle = $('healthToggle');
     const body = $('healthBody');
     if (err > 0 && !toggle.classList.contains('open')) {
@@ -694,11 +775,6 @@ function renderHealthTable(records) {
 
 applyTheme(getTheme());
 applyLang(translations, getLang());
-loadStatus();
-loadSourceHealth();
-loadSearchQuotaSummary();
-setInterval(loadStatus, 60000);
-setInterval(loadSourceHealth, 60000);
 </script>
 </body>
 </html>`;
