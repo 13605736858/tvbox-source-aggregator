@@ -315,6 +315,9 @@ ${sharedStyles}
   line-height:1.6;
 }
 
+// --- Auth ---
+const auth = initAuth('loginInput', 'loginError', 'loginOverlay', 'mainContent', '/status', loadAll);
+
 .footer{margin-top:48px;padding-top:24px}
 </style>
 <script>(function(){var t=localStorage.getItem('theme')||'dark';document.documentElement.setAttribute('data-theme',t)})()</script>
