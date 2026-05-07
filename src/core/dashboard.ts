@@ -331,6 +331,63 @@ ${sharedStyles}
 .collapsible-body.open {
   display: block;
 }
+
+/* 登录弹窗样式 */
+.login-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+.login-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 32px;
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+.login-box h2 {
+  margin: 0 0 16px;
+  color: var(--text-bright);
+}
+.login-box p {
+  margin: 0 0 20px;
+  color: var(--text-dim);
+}
+.login-box input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 16px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-bright);
+  box-sizing: border-box;
+}
+.login-box .btn {
+  width: 100%;
+  padding: 12px;
+  background: var(--green);
+  border: none;
+  border-radius: 4px;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+.error-msg {
+  color: var(--red);
+  margin: 0 0 12px;
+  font-size: 0.8rem;
+  display: none;
+}
 </style>
 <script>(function(){var t=localStorage.getItem('theme')||'dark';document.documentElement.setAttribute('data-theme',t)})()</script>
 </head>
@@ -339,7 +396,7 @@ ${sharedStyles}
 <!-- Login -->
 <div class="login-overlay" id="loginOverlay">
   <div class="login-box">
-    <h2 data-i18n="loginTitle">status</h2>
+    <h2 data-i18n="loginTitle">Admin Login</h2>
     <p data-i18n="loginSubtitle">Enter admin token</p>
     <div class="error-msg" id="loginError" data-i18n="invalidToken">Invalid token</div>
     <input type="password" id="tokenInput" data-i18n-placeholder="tokenPh" placeholder="Admin Token" autofocus>
@@ -396,7 +453,7 @@ ${sharedStyles}
     </div>
     <div class="stat-card">
       <div class="stat-label">
-        <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9"/></svg>
+        <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 01-9 9m9-9a9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9"/></svg>
         <span data-i18n="sources">Sources</span>
       </div>
       <div class="stat-value" id="statSources"><span class="skeleton">&nbsp;00&nbsp;</span></div>
@@ -492,6 +549,40 @@ ${sharedStyles}
 <script>
 ${sharedUi}
 
+// 1. 补全全局 $ 函数（获取元素）
+function $(id) {
+  return document.getElementById(id);
+}
+
+// 2. 补全 auth 对象与登录逻辑
+const auth = {
+  // 这里替换成你的真实管理员密码/令牌
+  validToken: "你的真实密码", 
+
+  doLogin: function() {
+    const inputToken = $("tokenInput").value.trim();
+    const errorEl = $("loginError");
+    const overlay = $("loginOverlay");
+    const mainContent = $("mainContent");
+
+    // 验证密码
+    if (inputToken === this.validToken) {
+      // 登录成功：隐藏弹窗、显示主内容
+      overlay.style.display = "none";
+      mainContent.style.display = "block";
+      document.body.style.opacity = "1";
+      // 加载数据
+      loadStatus();
+      loadSourceHealth();
+      loadSearchQuotaSummary();
+    } else {
+      // 登录失败：显示错误提示
+      errorEl.style.display = "block";
+      errorEl.textContent = t("invalidToken");
+    }
+  }
+};
+
 const translations = {
   en: {
     headerLabel:'System Monitor', connecting:'Connecting...', sites:'Sites', lives:'Lives',
@@ -508,10 +599,12 @@ const translations = {
     warnDockerNoBaseUrl:'Docker environment detected without BASE_URL configured. JAR proxy addresses may be unreachable from TVBox clients.<br>Set <b>BASE_URL=http://HOST_IP:PORT</b> in docker-compose.yml',
     footer:'TVBox Source Aggregator &middot; Cron 05:00 UTC Daily',
     navAdmin:'Admin', navConfigEditor:'Config Editor',
+    loginTitle:'Admin Login', loginSubtitle:'Enter admin token',
+    invalidToken:'Invalid token', login:'Login'
   },
   zh: {
     headerLabel:'系统监控', connecting:'连接中...', sites:'站点', lives:'直播',
-    parses:'解析', sources:'源', lastAggregation:'上次聚合',
+    parses:'解析', sources:'源", lastAggregation:'上次聚合',
     configUrlLabel:'TVBox 配置地址', liveConfigUrlLabel:'直播配置地址',
     copy:'复制', copied:'已复制!', copyFailed:'失败', neverRefresh:'从未更新',
     fetchError:'获取状态失败', noData:'无数据', error:'错误',
@@ -524,6 +617,8 @@ const translations = {
     warnDockerNoBaseUrl:'检测到 Docker 环境但未配置 BASE_URL，JAR 代理地址可能不可达。<br>请在 docker-compose.yml 中设置 <b>BASE_URL=http://宿主机IP:端口</b>',
     footer:'TVBox 源聚合器 &middot; 每日 UTC 05:00 定时任务',
     navAdmin:'管理', navConfigEditor:'配置编辑',
+    loginTitle:'管理员登录', loginSubtitle:'输入管理员令牌',
+    invalidToken:'令牌无效', login:'登录'
   }
 };
 
@@ -730,15 +825,23 @@ function toggleCollapsible(el) {
   body.classList.toggle('open');
 }
 
-applyTheme(getTheme());
-applyLang(translations, getLang());
-loadStatus();
-loadSourceHealth();
-loadSearchQuotaSummary();
-setInterval(loadStatus, 60000);
-setInterval(loadSourceHealth, 60000);
+// 主题/语言初始化（兼容sharedUi）
+if (typeof applyTheme === 'function') applyTheme(getTheme());
+if (typeof applyLang === 'function') applyLang(translations, getLang());
 
-document.body.style.opacity = '1';
+// 页面加载完成后，若已登录则直接显示主内容
+document.addEventListener('DOMContentLoaded', function() {
+  // 可选：本地存储记住登录状态（示例）
+  // const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+  // if (isLoggedIn) {
+  //   $("loginOverlay").style.display = "none";
+  //   $("mainContent").style.display = "block";
+  //   document.body.style.opacity = "1";
+  //   loadStatus();
+  //   loadSourceHealth();
+  //   loadSearchQuotaSummary();
+  // }
+});
 </script>
 </body>
 </html>`;
