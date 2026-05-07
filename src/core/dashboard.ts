@@ -131,6 +131,9 @@ ${sharedStyles}
 .update-time.stale{color:var(--amber)}
 .update-time.never{color:var(--red)}
 
+/* Refresh button - removed */
+}
+
 /* Source Health Section */
 .health-section{
   background:var(--surface);
@@ -313,110 +316,34 @@ ${sharedStyles}
 }
 
 .footer{margin-top:48px;padding-top:24px}
-
-.collapsible-toggle {
-  font-family: var(--mono);
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--text-dim);
-  cursor: pointer;
-  margin-top: 8px;
-  display: inline-block;
-}
-.collapsible-body {
-  display: none;
-  margin-top: 12px;
-}
-.collapsible-body.open {
-  display: block;
-}
-
-/* 登录弹窗样式 */
-.login-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.85);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-}
-.login-box {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 32px;
-  width: 100%;
-  max-width: 400px;
-  text-align: center;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.4);
-}
-.login-box h2 {
-  margin: 0 0 12px;
-  color: var(--text-bright);
-}
-.login-box p {
-  margin: 0 0 20px;
-  color: var(--text-dim);
-}
-.login-box input {
-  width: 100%;
-  padding: 14px;
-  margin-bottom: 16px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  color: var(--text-bright);
-  font-size: 1rem;
-  box-sizing: border-box;
-}
-.login-box .btn {
-  width: 100%;
-  padding: 14px;
-  background: var(--green);
-  border: none;
-  border-radius: 6px;
-  color: #fff;
-  font-weight: 600;
-  cursor: pointer;
-  font-size: 0.95rem;
-}
-.error-msg {
-  color: var(--red);
-  margin: 0 0 12px;
-  font-size: 0.8rem;
-  display: none;
-}
 </style>
 <script>(function(){var t=localStorage.getItem('theme')||'dark';document.documentElement.setAttribute('data-theme',t)})()</script>
 </head>
-<body>
+<body style="opacity:0">
 
 <!-- Login -->
 <div class="login-overlay" id="loginOverlay">
   <div class="login-box">
-    <h2 data-i18n="loginTitle">Admin Login</h2>
+    <h2 data-i18n="loginTitle">status</h2>
     <p data-i18n="loginSubtitle">Enter admin token</p>
     <div class="error-msg" id="loginError" data-i18n="invalidToken">Invalid token</div>
-    <input type="password" id="tokenInput" placeholder="Admin Token" autofocus>
-    <button class="btn" style="width:100%" onclick="auth.doLogin()">Login</button>
+    <input type="password" id="tokenInput" data-i18n-placeholder="tokenPh" placeholder="Admin Token" autofocus>
+    <button class="btn" style="width:100%" data-i18n="login" onclick="auth.doLogin()">Login</button>
   </div>
 </div>
 
 <!-- Main content -->
 <div class="container" id="mainContent" style="display:none">
+  <div class="container">
   <header class="header">
     <div class="header-top">
       <div class="header-label" data-i18n="headerLabel">System Monitor</div>
       <div style="display:flex;gap:8px;align-items:center">
-        <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">☀️</button>
+        <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">??</button>
         <button class="lang-toggle" id="langToggle" onclick="doToggleLang()">中文</button>
       </div>
     </div>
+    
     <h1 class="header-title">TVBox <span>Aggregator</span></h1>
     <div class="status-bar">
       <div class="status-indicator">
@@ -552,71 +479,239 @@ ${sharedStyles}
 <script>
 ${sharedUi}
 
-// 全局获取元素函数
-function $(id) { return document.getElementById(id); }
-
-// 登录逻辑（默认密码：123456）
-const auth = {
-  validToken: "123456", // 你可以改成自己的密码
-  doLogin: function() {
-    const val = $("tokenInput").value.trim();
-    if(val === this.validToken){
-      $("loginOverlay").style.display = "none";
-      $("mainContent").style.display = "block";
-    } else {
-      $("loginError").style.display = "block";
-    }
-  }
-};
-
 const translations = {
   en: {
     headerLabel:'System Monitor', connecting:'Connecting...', sites:'Sites', lives:'Lives',
     parses:'Parses', sources:'Sources', lastAggregation:'Last Aggregation',
     configUrlLabel:'TVBox Config URL', liveConfigUrlLabel:'Live-Only Config URL',
-    copy:'Copy', copied:'Copied!', copyFailed:'Failed',
+    copy:'Copy', copied:'Copied!', copyFailed:'Failed', neverRefresh:'Never',
+    fetchError:'Failed to fetch status', noData:'No data',
     sourceHealth:'Source Health', healthDetails:'Details', healthName:'Name',
     healthStatus:'Status', healthFails:'Fails', healthLastOk:'Last OK',
+    healthNoData:'No health data yet', healthNever:'--',
+    searchQuota:'Search Quota', sqActive:'active', sqExcluded:'excluded',
+    sqName:'Name', sqSource:'Source', sqReason:'Reason',
+    sqPinned:'pinned', sqHttp:'http', sqMainJar:'main jar', sqIndepJar:'indep jar',
+    warnDockerNoBaseUrl:'Docker environment detected without BASE_URL configured. JAR proxy addresses may be unreachable from TVBox clients.<br>Set <b>BASE_URL=http://HOST_IP:PORT</b> in docker-compose.yml',
+    footer:'TVBox Source Aggregator &middot; Cron 05:00 UTC Daily',
     navAdmin:'Admin', navConfigEditor:'Config Editor',
   },
   zh: {
     headerLabel:'系统监控', connecting:'连接中...', sites:'站点', lives:'直播',
     parses:'解析', sources:'源', lastAggregation:'上次聚合',
     configUrlLabel:'TVBox 配置地址', liveConfigUrlLabel:'直播配置地址',
-    copy:'复制', copied:'已复制!', copyFailed:'失败',
+    copy:'复制', copied:'已复制!', copyFailed:'失败', neverRefresh:'从未更新',
+    fetchError:'获取状态失败', noData:'无数据',
     sourceHealth:'源健康状态', healthDetails:'详情', healthName:'名称',
     healthStatus:'状态', healthFails:'失败', healthLastOk:'最后成功',
+    healthNoData:'暂无健康数据', healthNever:'--',
+    searchQuota:'搜索配额', sqActive:'活跃', sqExcluded:'排除',
+    sqName:'名称', sqSource:'来源', sqReason:'原因',
+    sqPinned:'置顶', sqHttp:'HTTP', sqMainJar:'主 JAR', sqIndepJar:'独立 JAR',
+    warnDockerNoBaseUrl:'检测到 Docker 环境但未配置 BASE_URL，JAR 代理地址可能不可达。<br>请在 docker-compose.yml 中设置 <b>BASE_URL=http://宿主机IP:端口</b>',
+    footer:'TVBox 源聚合器 &middot; 每日 UTC 05:00 定时任务',
     navAdmin:'管理', navConfigEditor:'配置编辑',
   }
 };
 
-function t(key){const l=getLang?.()||'zh';return translations[l]?.[key]||translations.en[key]||key;}
-function doToggleLang(){
-  const l=getLang?.()||'zh';const next=l==='zh'?'en':'zh';
-  localStorage.setItem('lang',next);if(applyLang)applyLang(translations,next);
+function t(key) { const l = getLang(); return translations[l]?.[key] || translations.en[key] || key; }
+
+function doToggleLang() {
+  const next = getLang() === 'zh' ? 'en' : 'zh';
+  localStorage.setItem('lang', next);
+  applyLang(translations, next);
+  loadStatus();
 }
 
-const configUrl=location.origin+'/';
-$('configUrl').textContent=configUrl;
-$('liveConfigUrl').textContent=location.origin+'/live-config';
+const configUrl = location.origin + '/';
+$('configUrl').textContent = configUrl;
+$('liveConfigUrl').textContent = location.origin + '/live-config';
 
-async function loadStatus(){try{const r=await fetch('/status-data');const d=await r.json();
-$('statSites').textContent=d.sites??'—';$('statLives').textContent=d.lives??'—';
-$('statParses').textContent=d.parses??'—';$('statSources').textContent=d.sourceCount??'—';}catch(e){}}
+async function loadStatus() {
+  try {
+    const res = await fetch('/status-data');
+    const d = await res.json();
 
-function copyUrl(id){const t=$(id).textContent;navigator.clipboard.writeText(t);}
-const STATUS_LABELS={ok:'OK',http_error:'ERR'};
-async function loadSourceHealth(){try{const r=await fetch('/source-status');const d=await r.json();}catch(e){}}
-async function loadSearchQuotaSummary(){}
-function esc(s){return s||'';}
-function toggleCollapsible(e){e.nextElementSibling.classList.toggle('open');}
+    $('statSites').textContent = d.sites ?? '—';
+    $('statLives').textContent = d.lives ?? '—';
+    $('statParses').textContent = d.parses ?? '—';
+    $('statSources').textContent = d.sourceCount ?? '—';
 
-if(applyTheme)applyTheme(getTheme?.()||'dark');
-if(applyLang)applyLang(translations,getLang?.()||'zh');
+    const dot = $('statusDot');
+    const txt = $('statusText');
+    const time = $('updateTime');
 
+    if (d.lastUpdate && d.lastUpdate !== 'never') {
+      const date = new Date(d.lastUpdate);
+      const now = new Date();
+      const diffH = (now - date) / 3.6e6;
+      const fmt = date.toLocaleString('zh-CN', {
+        year:'numeric', month:'2-digit', day:'2-digit',
+        hour:'2-digit', minute:'2-digit', second:'2-digit',
+        hour12: false
+      });
+
+      time.textContent = fmt;
+      time.className = 'update-time' + (diffH > 26 ? ' stale' : '');
+
+      dot.className = 'status-dot';
+      txt.textContent = 'Online · ' + d.sites + ' ' + t('sites').toLowerCase();
+    } else {
+      time.textContent = t('neverRefresh');
+      time.className = 'update-time never';
+      dot.className = 'status-dot offline';
+      txt.textContent = t('noData');
+    }
+
+    // Render warnings
+    const banner = $('warningBanner');
+    const warnings = d.warnings || [];
+    if (warnings.length > 0) {
+      const WARN_KEYS = { docker_no_base_url: 'warnDockerNoBaseUrl' };
+      banner.innerHTML = warnings.map(w => '<div class="warning-banner">? ' + (t(WARN_KEYS[w] || w)) + '</div>').join('');
+    } else {
+      banner.innerHTML = '';
+    }
+  } catch (e) {
+    $('statusDot').className = 'status-dot offline';
+    $('statusText').textContent = t('error');
+    $('updateTime').textContent = t('fetchError');
+    $('updateTime').className = 'update-time never';
+  }
+}
+
+
+function copyUrl(elementId) {
+  const text = $(elementId).textContent;
+  const btn = $(elementId).parentElement.querySelector('.copy-btn');
+  function onOk() {
+    btn.textContent = t('copied');
+    btn.className = 'copy-btn copied';
+    setTimeout(() => { btn.textContent = t('copy'); btn.className = 'copy-btn'; }, 2000);
+  }
+  function onFail() {
+    btn.textContent = t('copyFailed');
+    btn.className = 'copy-btn error';
+    setTimeout(() => { btn.textContent = t('copy'); btn.className = 'copy-btn'; }, 2000);
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(onOk).catch(() => {
+      fallbackCopy(text) ? onOk() : onFail();
+    });
+  } else {
+    fallbackCopy(text) ? onOk() : onFail();
+  }
+}
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;left:-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch {}
+  document.body.removeChild(ta);
+  return ok;
+}
+
+const STATUS_LABELS = {
+  ok:'OK', http_error:'HTTP ERR', decode_error:'DECODE ERR',
+  parse_error:'PARSE ERR', timeout:'TIMEOUT', network_error:'NET ERR'
+};
+
+async function loadSearchQuotaSummary() {
+  try {
+    const res = await fetch('/search-quota/summary');
+    if (!res.ok) return;
+    const d = await res.json();
+    if (!d.enabled) {
+      $('searchQuotaSection').style.display = 'none';
+      return;
+    }
+    $('searchQuotaSection').style.display = '';
+    $('sqActiveCount').textContent = d.searchable || 0;
+    $('sqExcludedCount').textContent = (d.jsExcluded || 0) + (d.truncated || 0);
+
+    const tbody = $('sqTableBody');
+    let html = '';
+    html += '<tr><td>Total</td><td colspan="3">' + (d.totalSites || '-') + ' sites</td></tr>';
+    html += '<tr><td>JS excluded</td><td colspan="3">' + (d.jsExcluded || 0) + '</td></tr>';
+    html += '<tr><td>Pinned</td><td colspan="3">' + (d.pinnedCount || 0) + '</td></tr>';
+    if (d.truncated > 0) html += '<tr><td>Truncated</td><td colspan="3">' + d.truncated + '</td></tr>';
+    html += '<tr style="font-weight:600"><td>Searchable</td><td colspan="3">' + (d.searchable || 0) + '</td></tr>';
+    tbody.innerHTML = html;
+  } catch {}
+}
+function escDash(s) { const d = document.createElement('div'); d.textContent = s || '-'; return d.innerHTML; }
+
+async function loadSourceHealth() {
+  try {
+    const res = await fetch('/source-status');
+    const records = await res.json();
+
+    let ok = 0, warn = 0, err = 0;
+    records.forEach(r => {
+      if (r.consecutiveFailures >= 5) err++;
+      else if (r.consecutiveFailures >= 3) warn++;
+      else ok++;
+    });
+
+    $('healthOk').textContent = ok;
+    $('healthWarn').textContent = warn;
+    $('healthError').textContent = err;
+
+    records.sort((a, b) => b.consecutiveFailures - a.consecutiveFailures);
+    renderHealthTable(records);
+
+    // 智能折叠：有 error 级别时自动展开
+    const toggle = $('healthToggle');
+    const body = $('healthBody');
+    if (err > 0 && !toggle.classList.contains('open')) {
+      toggle.classList.add('open');
+      body.classList.add('open');
+    }
+  } catch {
+    $('healthTableBody').innerHTML =
+      '<tr><td colspan="6" class="empty">' + t('fetchError') + '</td></tr>';
+  }
+}
+
+function renderHealthTable(records) {
+  if (!records.length) {
+    $('healthTableBody').innerHTML =
+      '<tr><td colspan="6" class="empty">' + t('healthNoData') + '</td></tr>';
+    return;
+  }
+
+  $('healthTableBody').innerHTML = records.map(r => {
+    const level = r.consecutiveFailures >= 5 ? 'error'
+               : r.consecutiveFailures >= 3 ? 'warn' : 'ok';
+    const statusLabel = STATUS_LABELS[r.latestStatus] || r.latestStatus;
+
+    const lastOk = r.lastSuccessTime
+      ? new Date(r.lastSuccessTime).toLocaleString('zh-CN', {
+          month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false
+        })
+      : t('healthNever');
+
+    return '<tr class="row-' + level + '">' +
+      '<td><span class="health-dot ' + level + '"></span></td>' +
+      '<td>' + esc(r.name || 'Unnamed') + '</td>' +
+      '<td class="url-cell" title="' + esc(r.url) + '">' + esc(r.url) + '</td>' +
+      '<td class="status-' + level + '">' + statusLabel + '</td>' +
+      '<td>' + r.consecutiveFailures + '</td>' +
+      '<td>' + lastOk + '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+applyTheme(getTheme());
+applyLang(translations, getLang());
 loadStatus();
 loadSourceHealth();
-setInterval(loadStatus,60000);
+loadSearchQuotaSummary();
+setInterval(loadStatus, 60000);
+setInterval(loadSourceHealth, 60000);
 </script>
 </body>
 </html>`;
