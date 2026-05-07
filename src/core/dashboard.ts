@@ -131,9 +131,6 @@ ${sharedStyles}
 .update-time.stale{color:var(--amber)}
 .update-time.never{color:var(--red)}
 
-/* Refresh button - removed */
-}
-
 /* Source Health Section */
 .health-section{
   background:var(--surface);
@@ -316,6 +313,24 @@ ${sharedStyles}
 }
 
 .footer{margin-top:48px;padding-top:24px}
+
+.collapsible-toggle {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+  cursor: pointer;
+  margin-top: 8px;
+  display: inline-block;
+}
+.collapsible-body {
+  display: none;
+  margin-top: 12px;
+}
+.collapsible-body.open {
+  display: block;
+}
 </style>
 <script>(function(){var t=localStorage.getItem('theme')||'dark';document.documentElement.setAttribute('data-theme',t)})()</script>
 </head>
@@ -334,17 +349,6 @@ ${sharedStyles}
 
 <!-- Main content -->
 <div class="container" id="mainContent" style="display:none">
-  <header class="header">
-    <div class="header-top">
-      <div class="header-label" data-i18n="headerLabel">System Monitor</div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">??</button>
-        <button class="lang-toggle" id="langToggle" onclick="doToggleLang()">中文</button>
-      </div>
-    </div>
-    
-
-<div class="container">
   <header class="header">
     <div class="header-top">
       <div class="header-label" data-i18n="headerLabel">System Monitor</div>
@@ -494,7 +498,7 @@ const translations = {
     parses:'Parses', sources:'Sources', lastAggregation:'Last Aggregation',
     configUrlLabel:'TVBox Config URL', liveConfigUrlLabel:'Live-Only Config URL',
     copy:'Copy', copied:'Copied!', copyFailed:'Failed', neverRefresh:'Never',
-    fetchError:'Failed to fetch status', noData:'No data',
+    fetchError:'Failed to fetch status', noData:'No data', error:'Error',
     sourceHealth:'Source Health', healthDetails:'Details', healthName:'Name',
     healthStatus:'Status', healthFails:'Fails', healthLastOk:'Last OK',
     healthNoData:'No health data yet', healthNever:'--',
@@ -510,7 +514,7 @@ const translations = {
     parses:'解析', sources:'源', lastAggregation:'上次聚合',
     configUrlLabel:'TVBox 配置地址', liveConfigUrlLabel:'直播配置地址',
     copy:'复制', copied:'已复制!', copyFailed:'失败', neverRefresh:'从未更新',
-    fetchError:'获取状态失败', noData:'无数据',
+    fetchError:'获取状态失败', noData:'无数据', error:'错误',
     sourceHealth:'源健康状态', healthDetails:'详情', healthName:'名称',
     healthStatus:'状态', healthFails:'失败', healthLastOk:'最后成功',
     healthNoData:'暂无健康数据', healthNever:'--',
@@ -572,7 +576,6 @@ async function loadStatus() {
       txt.textContent = t('noData');
     }
 
-    // Render warnings
     const banner = $('warningBanner');
     const warnings = d.warnings || [];
     if (warnings.length > 0) {
@@ -651,7 +654,15 @@ async function loadSearchQuotaSummary() {
     tbody.innerHTML = html;
   } catch {}
 }
-function escDash(s) { const d = document.createElement('div'); d.textContent = s || '-'; return d.innerHTML; }
+
+function esc(s) {
+  if (!s) return '-';
+  return s.replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+}
 
 async function loadSourceHealth() {
   try {
@@ -672,7 +683,6 @@ async function loadSourceHealth() {
     records.sort((a, b) => b.consecutiveFailures - a.consecutiveFailures);
     renderHealthTable(records);
 
-    // 智能折叠：有 error 级别时自动展开
     const toggle = $('healthToggle');
     const body = $('healthBody');
     if (err > 0 && !toggle.classList.contains('open')) {
@@ -714,6 +724,12 @@ function renderHealthTable(records) {
   }).join('');
 }
 
+function toggleCollapsible(el) {
+  const body = el.nextElementSibling;
+  el.classList.toggle('open');
+  body.classList.toggle('open');
+}
+
 applyTheme(getTheme());
 applyLang(translations, getLang());
 loadStatus();
@@ -721,6 +737,8 @@ loadSourceHealth();
 loadSearchQuotaSummary();
 setInterval(loadStatus, 60000);
 setInterval(loadSourceHealth, 60000);
+
+document.body.style.opacity = '1';
 </script>
 </body>
 </html>`;
