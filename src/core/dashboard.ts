@@ -336,7 +336,7 @@ ${sharedStyles}
 <div class="container" id="mainContent" style="display:none">
   <header class="header">
     <div class="header-top">
-      <div class="header-label" data-i18n="headerLabel">status</div>
+      <div class="header-label" data-i18n="headerLabel">System Monitor</div>
       <div style="display:flex;gap:8px;align-items:center">
         <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">??</button>
         <button class="lang-toggle" id="langToggle" onclick="doToggleLang()">中文</button>
