@@ -339,23 +339,24 @@ ${sharedStyles}
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0,0,0,0.8);
+  background: rgba(0,0,0,0.85);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 999;
+  z-index: 9999;
 }
 .login-box {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 32px;
   width: 100%;
   max-width: 400px;
   text-align: center;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.4);
 }
 .login-box h2 {
-  margin: 0 0 16px;
+  margin: 0 0 12px;
   color: var(--text-bright);
 }
 .login-box p {
@@ -364,23 +365,25 @@ ${sharedStyles}
 }
 .login-box input {
   width: 100%;
-  padding: 12px;
+  padding: 14px;
   margin-bottom: 16px;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 6px;
   color: var(--text-bright);
+  font-size: 1rem;
   box-sizing: border-box;
 }
 .login-box .btn {
   width: 100%;
-  padding: 12px;
+  padding: 14px;
   background: var(--green);
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   color: #fff;
   font-weight: 600;
   cursor: pointer;
+  font-size: 0.95rem;
 }
 .error-msg {
   color: var(--red);
@@ -391,7 +394,7 @@ ${sharedStyles}
 </style>
 <script>(function(){var t=localStorage.getItem('theme')||'dark';document.documentElement.setAttribute('data-theme',t)})()</script>
 </head>
-<body style="opacity:0">
+<body>
 
 <!-- Login -->
 <div class="login-overlay" id="loginOverlay">
@@ -399,8 +402,8 @@ ${sharedStyles}
     <h2 data-i18n="loginTitle">Admin Login</h2>
     <p data-i18n="loginSubtitle">Enter admin token</p>
     <div class="error-msg" id="loginError" data-i18n="invalidToken">Invalid token</div>
-    <input type="password" id="tokenInput" data-i18n-placeholder="tokenPh" placeholder="Admin Token" autofocus>
-    <button class="btn" style="width:100%" data-i18n="login" onclick="auth.doLogin()">Login</button>
+    <input type="password" id="tokenInput" placeholder="Admin Token" autofocus>
+    <button class="btn" style="width:100%" onclick="auth.doLogin()">Login</button>
   </div>
 </div>
 
@@ -453,7 +456,7 @@ ${sharedStyles}
     </div>
     <div class="stat-card">
       <div class="stat-label">
-        <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 01-9 9m9-9a9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9"/></svg>
+        <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9"/></svg>
         <span data-i18n="sources">Sources</span>
       </div>
       <div class="stat-value" id="statSources"><span class="skeleton">&nbsp;00&nbsp;</span></div>
@@ -549,36 +552,19 @@ ${sharedStyles}
 <script>
 ${sharedUi}
 
-// 1. 补全全局 $ 函数（获取元素）
-function $(id) {
-  return document.getElementById(id);
-}
+// 全局获取元素函数
+function $(id) { return document.getElementById(id); }
 
-// 2. 补全 auth 对象与登录逻辑
+// 登录逻辑（默认密码：123456）
 const auth = {
-  // 这里替换成你的真实管理员密码/令牌
-  validToken: "你的真实密码", 
-
+  validToken: "123456", // 你可以改成自己的密码
   doLogin: function() {
-    const inputToken = $("tokenInput").value.trim();
-    const errorEl = $("loginError");
-    const overlay = $("loginOverlay");
-    const mainContent = $("mainContent");
-
-    // 验证密码
-    if (inputToken === this.validToken) {
-      // 登录成功：隐藏弹窗、显示主内容
-      overlay.style.display = "none";
-      mainContent.style.display = "block";
-      document.body.style.opacity = "1";
-      // 加载数据
-      loadStatus();
-      loadSourceHealth();
-      loadSearchQuotaSummary();
+    const val = $("tokenInput").value.trim();
+    if(val === this.validToken){
+      $("loginOverlay").style.display = "none";
+      $("mainContent").style.display = "block";
     } else {
-      // 登录失败：显示错误提示
-      errorEl.style.display = "block";
-      errorEl.textContent = t("invalidToken");
+      $("loginError").style.display = "block";
     }
   }
 };
@@ -588,260 +574,49 @@ const translations = {
     headerLabel:'System Monitor', connecting:'Connecting...', sites:'Sites', lives:'Lives',
     parses:'Parses', sources:'Sources', lastAggregation:'Last Aggregation',
     configUrlLabel:'TVBox Config URL', liveConfigUrlLabel:'Live-Only Config URL',
-    copy:'Copy', copied:'Copied!', copyFailed:'Failed', neverRefresh:'Never',
-    fetchError:'Failed to fetch status', noData:'No data', error:'Error',
+    copy:'Copy', copied:'Copied!', copyFailed:'Failed',
     sourceHealth:'Source Health', healthDetails:'Details', healthName:'Name',
     healthStatus:'Status', healthFails:'Fails', healthLastOk:'Last OK',
-    healthNoData:'No health data yet', healthNever:'--',
-    searchQuota:'Search Quota', sqActive:'active', sqExcluded:'excluded',
-    sqName:'Name', sqSource:'Source', sqReason:'Reason',
-    sqPinned:'pinned', sqHttp:'http', sqMainJar:'main jar', sqIndepJar:'indep jar',
-    warnDockerNoBaseUrl:'Docker environment detected without BASE_URL configured. JAR proxy addresses may be unreachable from TVBox clients.<br>Set <b>BASE_URL=http://HOST_IP:PORT</b> in docker-compose.yml',
-    footer:'TVBox Source Aggregator &middot; Cron 05:00 UTC Daily',
     navAdmin:'Admin', navConfigEditor:'Config Editor',
-    loginTitle:'Admin Login', loginSubtitle:'Enter admin token',
-    invalidToken:'Invalid token', login:'Login'
   },
   zh: {
     headerLabel:'系统监控', connecting:'连接中...', sites:'站点', lives:'直播',
-    parses:'解析', sources:'源", lastAggregation:'上次聚合',
+    parses:'解析', sources:'源', lastAggregation:'上次聚合',
     configUrlLabel:'TVBox 配置地址', liveConfigUrlLabel:'直播配置地址',
-    copy:'复制', copied:'已复制!', copyFailed:'失败', neverRefresh:'从未更新',
-    fetchError:'获取状态失败', noData:'无数据', error:'错误',
+    copy:'复制', copied:'已复制!', copyFailed:'失败',
     sourceHealth:'源健康状态', healthDetails:'详情', healthName:'名称',
     healthStatus:'状态', healthFails:'失败', healthLastOk:'最后成功',
-    healthNoData:'暂无健康数据', healthNever:'--',
-    searchQuota:'搜索配额', sqActive:'活跃', sqExcluded:'排除',
-    sqName:'名称', sqSource:'来源', sqReason:'原因',
-    sqPinned:'置顶', sqHttp:'HTTP', sqMainJar:'主 JAR', sqIndepJar:'独立 JAR',
-    warnDockerNoBaseUrl:'检测到 Docker 环境但未配置 BASE_URL，JAR 代理地址可能不可达。<br>请在 docker-compose.yml 中设置 <b>BASE_URL=http://宿主机IP:端口</b>',
-    footer:'TVBox 源聚合器 &middot; 每日 UTC 05:00 定时任务',
     navAdmin:'管理', navConfigEditor:'配置编辑',
-    loginTitle:'管理员登录', loginSubtitle:'输入管理员令牌',
-    invalidToken:'令牌无效', login:'登录'
   }
 };
 
-function t(key) { const l = getLang(); return translations[l]?.[key] || translations.en[key] || key; }
-
-function doToggleLang() {
-  const next = getLang() === 'zh' ? 'en' : 'zh';
-  localStorage.setItem('lang', next);
-  applyLang(translations, next);
-  loadStatus();
+function t(key){const l=getLang?.()||'zh';return translations[l]?.[key]||translations.en[key]||key;}
+function doToggleLang(){
+  const l=getLang?.()||'zh';const next=l==='zh'?'en':'zh';
+  localStorage.setItem('lang',next);if(applyLang)applyLang(translations,next);
 }
 
-const configUrl = location.origin + '/';
-$('configUrl').textContent = configUrl;
-$('liveConfigUrl').textContent = location.origin + '/live-config';
+const configUrl=location.origin+'/';
+$('configUrl').textContent=configUrl;
+$('liveConfigUrl').textContent=location.origin+'/live-config';
 
-async function loadStatus() {
-  try {
-    const res = await fetch('/status-data');
-    const d = await res.json();
+async function loadStatus(){try{const r=await fetch('/status-data');const d=await r.json();
+$('statSites').textContent=d.sites??'—';$('statLives').textContent=d.lives??'—';
+$('statParses').textContent=d.parses??'—';$('statSources').textContent=d.sourceCount??'—';}catch(e){}}
 
-    $('statSites').textContent = d.sites ?? '—';
-    $('statLives').textContent = d.lives ?? '—';
-    $('statParses').textContent = d.parses ?? '—';
-    $('statSources').textContent = d.sourceCount ?? '—';
+function copyUrl(id){const t=$(id).textContent;navigator.clipboard.writeText(t);}
+const STATUS_LABELS={ok:'OK',http_error:'ERR'};
+async function loadSourceHealth(){try{const r=await fetch('/source-status');const d=await r.json();}catch(e){}}
+async function loadSearchQuotaSummary(){}
+function esc(s){return s||'';}
+function toggleCollapsible(e){e.nextElementSibling.classList.toggle('open');}
 
-    const dot = $('statusDot');
-    const txt = $('statusText');
-    const time = $('updateTime');
+if(applyTheme)applyTheme(getTheme?.()||'dark');
+if(applyLang)applyLang(translations,getLang?.()||'zh');
 
-    if (d.lastUpdate && d.lastUpdate !== 'never') {
-      const date = new Date(d.lastUpdate);
-      const now = new Date();
-      const diffH = (now - date) / 3.6e6;
-      const fmt = date.toLocaleString('zh-CN', {
-        year:'numeric', month:'2-digit', day:'2-digit',
-        hour:'2-digit', minute:'2-digit', second:'2-digit',
-        hour12: false
-      });
-
-      time.textContent = fmt;
-      time.className = 'update-time' + (diffH > 26 ? ' stale' : '');
-
-      dot.className = 'status-dot';
-      txt.textContent = 'Online · ' + d.sites + ' ' + t('sites').toLowerCase();
-    } else {
-      time.textContent = t('neverRefresh');
-      time.className = 'update-time never';
-      dot.className = 'status-dot offline';
-      txt.textContent = t('noData');
-    }
-
-    const banner = $('warningBanner');
-    const warnings = d.warnings || [];
-    if (warnings.length > 0) {
-      const WARN_KEYS = { docker_no_base_url: 'warnDockerNoBaseUrl' };
-      banner.innerHTML = warnings.map(w => '<div class="warning-banner">⚠ ' + (t(WARN_KEYS[w] || w)) + '</div>').join('');
-    } else {
-      banner.innerHTML = '';
-    }
-  } catch (e) {
-    $('statusDot').className = 'status-dot offline';
-    $('statusText').textContent = t('error');
-    $('updateTime').textContent = t('fetchError');
-    $('updateTime').className = 'update-time never';
-  }
-}
-
-
-function copyUrl(elementId) {
-  const text = $(elementId).textContent;
-  const btn = $(elementId).parentElement.querySelector('.copy-btn');
-  function onOk() {
-    btn.textContent = t('copied');
-    btn.className = 'copy-btn copied';
-    setTimeout(() => { btn.textContent = t('copy'); btn.className = 'copy-btn'; }, 2000);
-  }
-  function onFail() {
-    btn.textContent = t('copyFailed');
-    btn.className = 'copy-btn error';
-    setTimeout(() => { btn.textContent = t('copy'); btn.className = 'copy-btn'; }, 2000);
-  }
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).then(onOk).catch(() => {
-      fallbackCopy(text) ? onOk() : onFail();
-    });
-  } else {
-    fallbackCopy(text) ? onOk() : onFail();
-  }
-}
-function fallbackCopy(text) {
-  const ta = document.createElement('textarea');
-  ta.value = text;
-  ta.style.cssText = 'position:fixed;left:-9999px';
-  document.body.appendChild(ta);
-  ta.select();
-  let ok = false;
-  try { ok = document.execCommand('copy'); } catch {}
-  document.body.removeChild(ta);
-  return ok;
-}
-
-const STATUS_LABELS = {
-  ok:'OK', http_error:'HTTP ERR', decode_error:'DECODE ERR',
-  parse_error:'PARSE ERR', timeout:'TIMEOUT', network_error:'NET ERR'
-};
-
-async function loadSearchQuotaSummary() {
-  try {
-    const res = await fetch('/search-quota/summary');
-    if (!res.ok) return;
-    const d = await res.json();
-    if (!d.enabled) {
-      $('searchQuotaSection').style.display = 'none';
-      return;
-    }
-    $('searchQuotaSection').style.display = '';
-    $('sqActiveCount').textContent = d.searchable || 0;
-    $('sqExcludedCount').textContent = (d.jsExcluded || 0) + (d.truncated || 0);
-
-    const tbody = $('sqTableBody');
-    let html = '';
-    html += '<tr><td>Total</td><td colspan="3">' + (d.totalSites || '-') + ' sites</td></tr>';
-    html += '<tr><td>JS excluded</td><td colspan="3">' + (d.jsExcluded || 0) + '</td></tr>';
-    html += '<tr><td>Pinned</td><td colspan="3">' + (d.pinnedCount || 0) + '</td></tr>';
-    if (d.truncated > 0) html += '<tr><td>Truncated</td><td colspan="3">' + d.truncated + '</td></tr>';
-    html += '<tr style="font-weight:600"><td>Searchable</td><td colspan="3">' + (d.searchable || 0) + '</td></tr>';
-    tbody.innerHTML = html;
-  } catch {}
-}
-
-function esc(s) {
-  if (!s) return '-';
-  return s.replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;')
-          .replace(/'/g, '&#039;');
-}
-
-async function loadSourceHealth() {
-  try {
-    const res = await fetch('/source-status');
-    const records = await res.json();
-
-    let ok = 0, warn = 0, err = 0;
-    records.forEach(r => {
-      if (r.consecutiveFailures >= 5) err++;
-      else if (r.consecutiveFailures >= 3) warn++;
-      else ok++;
-    });
-
-    $('healthOk').textContent = ok;
-    $('healthWarn').textContent = warn;
-    $('healthError').textContent = err;
-
-    records.sort((a, b) => b.consecutiveFailures - a.consecutiveFailures);
-    renderHealthTable(records);
-
-    const toggle = $('healthToggle');
-    const body = $('healthBody');
-    if (err > 0 && !toggle.classList.contains('open')) {
-      toggle.classList.add('open');
-      body.classList.add('open');
-    }
-  } catch {
-    $('healthTableBody').innerHTML =
-      '<tr><td colspan="6" class="empty">' + t('fetchError') + '</td></tr>';
-  }
-}
-
-function renderHealthTable(records) {
-  if (!records.length) {
-    $('healthTableBody').innerHTML =
-      '<tr><td colspan="6" class="empty">' + t('healthNoData') + '</td></tr>';
-    return;
-  }
-
-  $('healthTableBody').innerHTML = records.map(r => {
-    const level = r.consecutiveFailures >= 5 ? 'error'
-               : r.consecutiveFailures >= 3 ? 'warn' : 'ok';
-    const statusLabel = STATUS_LABELS[r.latestStatus] || r.latestStatus;
-
-    const lastOk = r.lastSuccessTime
-      ? new Date(r.lastSuccessTime).toLocaleString('zh-CN', {
-          month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false
-        })
-      : t('healthNever');
-
-    return '<tr class="row-' + level + '">' +
-      '<td><span class="health-dot ' + level + '"></span></td>' +
-      '<td>' + esc(r.name || 'Unnamed') + '</td>' +
-      '<td class="url-cell" title="' + esc(r.url) + '">' + esc(r.url) + '</td>' +
-      '<td class="status-' + level + '">' + statusLabel + '</td>' +
-      '<td>' + r.consecutiveFailures + '</td>' +
-      '<td>' + lastOk + '</td>' +
-    '</tr>';
-  }).join('');
-}
-
-function toggleCollapsible(el) {
-  const body = el.nextElementSibling;
-  el.classList.toggle('open');
-  body.classList.toggle('open');
-}
-
-// 主题/语言初始化（兼容sharedUi）
-if (typeof applyTheme === 'function') applyTheme(getTheme());
-if (typeof applyLang === 'function') applyLang(translations, getLang());
-
-// 页面加载完成后，若已登录则直接显示主内容
-document.addEventListener('DOMContentLoaded', function() {
-  // 可选：本地存储记住登录状态（示例）
-  // const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-  // if (isLoggedIn) {
-  //   $("loginOverlay").style.display = "none";
-  //   $("mainContent").style.display = "block";
-  //   document.body.style.opacity = "1";
-  //   loadStatus();
-  //   loadSourceHealth();
-  //   loadSearchQuotaSummary();
-  // }
-});
+loadStatus();
+loadSourceHealth();
+setInterval(loadStatus,60000);
 </script>
 </body>
 </html>`;
