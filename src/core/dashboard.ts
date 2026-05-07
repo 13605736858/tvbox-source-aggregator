@@ -315,29 +315,14 @@ ${sharedStyles}
   line-height:1.6;
 }
 
-// --- Auth ---
-const auth = initAuth('loginInput', 'loginError', 'loginOverlay', 'mainContent', '/status', loadAll);
-
 .footer{margin-top:48px;padding-top:24px}
 </style>
 <script>(function(){var t=localStorage.getItem('theme')||'dark';document.documentElement.setAttribute('data-theme',t)})()</script>
 </head>
 <body style="opacity:0">
 
-<!-- Login -->
-<div class="login-overlay" id="loginOverlay">
-  <div class="login-box">
-    <h2 data-i18n="loginTitle">status</h2>
-    <p data-i18n="loginSubtitle">Enter admin token</p>
-    <div class="error-msg" id="loginError" data-i18n="invalidToken">Invalid token</div>
-    <input type="password" id="tokenInput" data-i18n-placeholder="tokenPh" placeholder="Admin Token" autofocus>
-    <button class="btn" style="width:100%" data-i18n="login" onclick="auth.doLogin()">Login</button>
-  </div>
-</div>
 
-<!-- Main content -->
-<div class="container" id="mainContent" style="display:none">
-  <div class="container">
+<div class="container">
   <header class="header">
     <div class="header-top">
       <div class="header-label" data-i18n="headerLabel">System Monitor</div>
@@ -346,7 +331,6 @@ const auth = initAuth('loginInput', 'loginError', 'loginOverlay', 'mainContent',
         <button class="lang-toggle" id="langToggle" onclick="doToggleLang()">中文</button>
       </div>
     </div>
-    
     <h1 class="header-title">TVBox <span>Aggregator</span></h1>
     <div class="status-bar">
       <div class="status-indicator">
