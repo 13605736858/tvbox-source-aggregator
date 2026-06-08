@@ -182,6 +182,7 @@ async function main() {
     config,
     triggerRefresh: runWithGuard,
     enableChannelProbe: true,
+    isSyncing: () => refreshRunning,
     onCronIntervalChange: (intervalMinutes: number) => {
       const newCron = intervalToCron(intervalMinutes);
       console.log(`[cron] Interval changed to ${intervalLabel(intervalMinutes)} (${newCron})`);
