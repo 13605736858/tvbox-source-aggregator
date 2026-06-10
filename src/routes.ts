@@ -3,14 +3,15 @@
 import { Hono } from 'hono';
 import type { Storage } from './storage/interface';
 import type { AppConfig, SourceEntry, MacCMSSourceEntry, LiveSourceEntry, NameTransformConfig, EdgeProxyConfig } from './core/types';
-import { KV_MERGED_CONFIG, KV_MERGED_CONFIG_FULL, KV_MANUAL_SOURCES, KV_LAST_UPDATE, KV_MACCMS_SOURCES, KV_LIVE_SOURCES, KV_BLACKLIST, LIVE_PROXY_TTL, IMG_PROXY_TTL, KV_INLINE_PREFIX, KV_NAME_TRANSFORM, KV_CRON_INTERVAL, DEFAULT_CRON_INTERVAL, KV_SOURCE_HEALTH, KV_SPEED_TEST_ENABLED, KV_EDGE_PROXIES, KV_SEARCH_QUOTA_REPORT, KV_AGG_LOGS, KV_BG_SETTINGS, KV_DEDUP_CONFIG, KV_LIVE_DISABLED, KV_SMART_BASE_URL_ENABLED, KV_SITE_PROBE_DEPTH, KV_SITE_AUTO_CLEAN, KV_SITE_HEALTH_MAP } from './core/config';
+import { KV_MERGED_CONFIG, KV_MERGED_CONFIG_FULL, KV_MANUAL_SOURCES, KV_LAST_UPDATE, KV_MACCMS_SOURCES, KV_LIVE_SOURCES, KV_BLACKLIST, LIVE_PROXY_TTL, IMG_PROXY_TTL, KV_INLINE_PREFIX, KV_NAME_TRANSFORM, KV_CRON_INTERVAL, DEFAULT_CRON_INTERVAL, KV_SOURCE_HEALTH, KV_SPEED_TEST_ENABLED, KV_EDGE_PROXIES, KV_SEARCH_QUOTA_REPORT, KV_AGG_LOGS, KV_BG_SETTINGS, KV_DEDUP_CONFIG, KV_LIVE_DISABLED, KV_LIVE_MERGE_MODE, KV_SMART_BASE_URL_ENABLED, KV_SITE_PROBE_DEPTH, KV_SITE_AUTO_CLEAN, KV_SITE_HEALTH_MAP } from './core/config';
 import { getRequestBaseUrl, applyBaseUrlPlaceholder, assertHostAllowed } from './core/base-url';
 import { logger } from './core/logger';
 import { loadGroupOrder, saveGroupOrder } from './core/group-order';
 import { parseConfigJson, isMultiRepoConfig, extractMultiRepoEntries } from './core/fetcher';
 import { decodeConfigResponse } from './core/decoder';
 import { validateMacCMS } from './core/maccms';
-import { lookupJarUrl, isMd5Key, base64ToUint8Array } from './core/jar-proxy';
+import { lookupJarUrl, isMd5Key, base64ToUint8Array, rewriteJarUrls } from './core/jar-proxy';
+import { BASE_URL_PLACEHOLDER } from './core/config';
 import { lookupLiveUrl } from './core/live-source';
 import { adminHtml } from './core/admin';
 import { dashboardHtml } from './core/dashboard';
@@ -21,7 +22,7 @@ import { loadCredentials, saveCredential, deleteCredential, loadCredentialPolicy
 import { generateQR, pollQRStatus, passwordLogin, PLATFORM_NAMES, QR_PLATFORMS, PASSWORD_PLATFORMS } from './core/cloud-login';
 import { assessAllSources } from './core/credential-risk';
 import { generateTokenJson } from './core/credential-injector';
-import { formatLiveGroupsAsTxt } from './core/live-merger';
+import { formatLiveGroupsAsTxt, fetchAndParseLiveUrls } from './core/live-merger';
 import type { TVBoxConfig, SearchQuotaConfig, CloudPlatform, CloudCredential, TVBoxLiveGroup } from './core/types';
 import { mountChannelProbeRoutes } from './routes/channel-probe-admin';
 
@@ -143,12 +144,31 @@ export function createApp(deps: AppDeps): Hono {
       const full = JSON.parse(cached);
       const lives = full.lives || [];
 
-      // CF 模式可能仍保留 FongMi live entries（type/url/api），此时保持旧 JSON 输出兼容。
+      // FongMi 格式（type/url/api 指针）：实时下载并解析为 txt 格式
       if (!isNativeLiveGroups(lives)) {
-        const liveConfig = { lives };
-        return c.body(JSON.stringify(liveConfig), 200, {
-          'Content-Type': 'application/json; charset=utf-8',
-          'Cache-Control': 'public, max-age=1800',
+        const liveUrls: Array<{ name: string; url: string; header?: Record<string, string> }> = [];
+        for (const entry of lives) {
+          const url = entry.url || entry.api;
+          if (url && typeof url === 'string') {
+            liveUrls.push({ name: entry.name || url, url, header: entry.header });
+          }
+        }
+        if (liveUrls.length > 0) {
+          try {
+            const groups = await fetchAndParseLiveUrls(liveUrls, 8000);
+            if (groups.length > 0) {
+              return c.body(formatLiveGroupsAsTxt(groups), 200, {
+                'Content-Type': 'text/plain; charset=utf-8',
+                'Cache-Control': 'public, max-age=1800',
+                'Access-Control-Allow-Origin': '*',
+              });
+            }
+          } catch { /* fall through to JSON fallback */ }
+        }
+        // 无法解析时返回空 txt
+        return c.body('', 200, {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Cache-Control': 'public, max-age=300',
           'Access-Control-Allow-Origin': '*',
         });
       }
@@ -1342,6 +1362,14 @@ export function createApp(deps: AppDeps): Hono {
     const parseSet = new Set(blacklist.parses);
     const liveSet = new Set(blacklist.lives);
 
+    // 预编译正则规则用于标记 regexBlocked
+    const activeRegexRules = blacklist.regexRules.filter(r => r.enabled);
+    const compiledRegex: Array<{ re: RegExp; field: string }> = [];
+    for (const rule of activeRegexRules) {
+      try { compiledRegex.push({ re: new RegExp(rule.pattern, 'i'), field: rule.field }); } catch { /* skip */ }
+    }
+    const overrideSet = new Set(blacklist.regexBlockOverrides);
+
     // Build sites with fingerprint + blocked status + group
     const sites = [];
     for (const site of parsed.sites || []) {
@@ -1353,7 +1381,16 @@ export function createApp(deps: AppDeps): Hono {
       } else if (api.startsWith('http')) {
         try { group = '远程: ' + new URL(api).hostname; } catch { group = '远程源'; }
       }
-      sites.push({ ...site, fingerprint: fp, blocked: siteSet.has(fp), group });
+      const fpBlocked = siteSet.has(fp);
+      let regexBlocked = false;
+      let regexPattern = '';
+      if (!fpBlocked && !overrideSet.has(site.name || '')) {
+        for (const { re, field } of compiledRegex) {
+          const value = String((site as unknown as Record<string, unknown>)[field] || '');
+          if (re.test(value)) { regexBlocked = true; regexPattern = re.source; break; }
+        }
+      }
+      sites.push({ ...site, fingerprint: fp, blocked: fpBlocked || regexBlocked, regexBlocked, regexPattern, group });
     }
 
     const parses = (parsed.parses || []).map(p => ({
@@ -1469,13 +1506,30 @@ export function createApp(deps: AppDeps): Hono {
     if (!fullRaw) return;
     const blacklist = await loadBlacklist(storage);
     const hasBlacklist = blacklist.sites.length > 0 || blacklist.parses.length > 0 || blacklist.lives.length > 0 || blacklist.regexRules.some(r => r.enabled);
+
+    let result: TVBoxConfig;
     if (!hasBlacklist) {
-      await storage.put(KV_MERGED_CONFIG, fullRaw);
-      return;
+      result = JSON.parse(fullRaw);
+    } else {
+      const fullConfig: TVBoxConfig = JSON.parse(fullRaw);
+      const { config: filtered } = await applyBlacklist(fullConfig, blacklist);
+      result = filtered;
     }
-    const fullConfig: TVBoxConfig = JSON.parse(fullRaw);
-    const { config: filtered } = await applyBlacklist(fullConfig, blacklist);
-    await storage.put(KV_MERGED_CONFIG, JSON.stringify(filtered));
+
+    // 保留当前已合并的 Native lives（避免回退到 FongMi 格式）
+    const currentRaw = await storage.get(KV_MERGED_CONFIG);
+    if (currentRaw) {
+      try {
+        const current: TVBoxConfig = JSON.parse(currentRaw);
+        if (Array.isArray(current.lives) && current.lives.length > 0 && current.lives[0]?.group) {
+          result.lives = current.lives;
+        }
+      } catch { /* ignore parse error */ }
+    }
+
+    // 重新应用 JAR proxy rewrite（与 aggregator Step 7 一致）
+    result = await rewriteJarUrls(result, BASE_URL_PLACEHOLDER, storage);
+    await storage.put(KV_MERGED_CONFIG, JSON.stringify(result));
   }
 
   // ─── 正则黑名单 ─────────────────────────────────────────
@@ -1704,6 +1758,27 @@ export function createApp(deps: AppDeps): Hono {
     const body = await c.req.json<{ disabled: boolean }>();
     await storage.put(KV_LIVE_DISABLED, body.disabled ? 'true' : 'false');
     return c.json({ success: true, disabled: body.disabled });
+  });
+
+  // ─── 直播合并模式 ─────────────────────────────────────────
+  app.get('/admin/live-merge-mode', async (c) => {
+    const raw = await storage.get(KV_LIVE_MERGE_MODE);
+    return c.json({ mode: raw || 'separated' });
+  });
+
+  app.put('/admin/live-merge-mode', async (c) => {
+    if (config.adminToken) {
+      const auth = c.req.raw.headers.get('Authorization');
+      if (auth !== `Bearer ${config.adminToken}`) return c.json({ error: 'Unauthorized' }, 401);
+    }
+    if (deps.isSyncing?.()) {
+      return c.json({ error: 'Aggregation in progress, try later' }, 409);
+    }
+    const body = await c.req.json<{ mode: string }>();
+    const mode = body.mode === 'merged' ? 'merged' : 'separated';
+    await storage.put(KV_LIVE_MERGE_MODE, mode);
+    try { await deps.triggerRefresh(); } catch { /* best effort */ }
+    return c.json({ success: true, mode });
   });
 
   // ─── 智能 Base URL 开关 ──────────────────────────────────
